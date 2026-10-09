@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Найдите проблему в критериях приёмки</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --accent:#7C6FF5; --accent-hover:#6658E0; --accent-light:#F1EEFE; --accent-light-border:#DCD5FC;
+    --ink:#1F2430; --ink-soft:#4B5160; --gray:#6B7280; --border:#E6E7EC;
+    --good:#2F9E5C; --good-bg:#EAF8F0; --good-border:#BEE9D0;
+    --bad-bg:#FDEEEE; --bad-border:#F5C9C7; --bad-text:#C13A34;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#fff; color:var(--ink); line-height:1.5; -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:760px; margin:0 auto; padding:36px 24px 60px;}
+  .tag-row{display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;}
+  .tag{font-size:12.5px; font-weight:600; padding:5px 12px; border-radius:999px; background:var(--accent-light); color:var(--accent-hover); border:1px solid var(--accent-light-border);}
+  .tag.muted{background:#F5F5F7; color:var(--gray); border-color:#E6E7EC;}
+  h1{font-size:26px; font-weight:800; margin:0 0 10px; letter-spacing:-0.01em;}
+  .lead{color:var(--ink-soft); font-size:15px; margin:0 0 26px; max-width:620px;}
+  .doc-card{border:1px solid var(--border); border-radius:14px; box-shadow:0 1px 2px rgba(20,20,43,0.04), 0 8px 24px rgba(20,20,43,0.05); overflow:hidden; background:#fff;}
+  .doc-header{background:#FAFAFC; border-bottom:1px solid var(--border); padding:14px 22px; font-family:'JetBrains Mono',monospace; font-size:12.5px; color:var(--gray); display:flex; justify-content:space-between;}
+  .doc-body{padding:22px;}
+  .story-box{
+    background:var(--accent-light);
+    border:1px solid var(--accent-light-border);
+    border-radius:10px;
+    padding:14px 16px;
+    font-size:14.5px;
+    margin-bottom:20px;
+  }
+  .story-box b{color:var(--accent-hover);}
+  .doc-title{font-size:14px; font-weight:700; color:var(--ink); margin:0 0 16px;}
+  .req-block{display:flex; gap:14px; padding:14px 12px; border-radius:10px; border:1.5px solid transparent; cursor:pointer; transition:border-color .15s ease, background .15s ease; margin-bottom:4px;}
+  .req-block:hover:not(.locked){border-color:var(--accent-light-border); background:var(--accent-light);}
+  .req-id{font-family:'JetBrains Mono',monospace; font-size:12.5px; color:var(--gray); flex-shrink:0; width:40px; padding-top:2px;}
+  .req-text{font-size:14.5px; color:var(--ink);}
+  .req-block.correct{border-color:var(--good-border); background:var(--good-bg);}
+  .req-block.correct .req-id{color:var(--good);}
+  .req-block.wrong-flash{border-color:var(--bad-border); background:var(--bad-bg);}
+  .inline-hint{font-size:13px; color:var(--bad-text); margin-top:4px; display:none;}
+  .req-block.wrong-flash .inline-hint{display:block;}
+  .note-block{
+    margin-top:16px;
+    padding:14px 12px;
+    border-radius:10px;
+    border:1.5px dashed var(--border);
+    cursor:pointer;
+    transition:border-color .15s ease, background .15s ease;
+    display:flex;
+    gap:14px;
+  }
+  .note-block:hover:not(.locked){border-color:var(--accent-light-border); background:var(--accent-light);}
+  .note-block.wrong-flash{border-color:var(--bad-border); background:var(--bad-bg);}
+  .note-block .req-id{color:var(--gray); font-style:italic; font-family:'Inter',sans-serif; width:auto; flex-shrink:0;}
+  .toolbar{display:flex; justify-content:space-between; align-items:center; margin-top:18px;}
+  .attempts{font-size:13px; color:var(--gray);}
+  .btn{background:none; border:1.5px solid var(--accent-light-border); color:var(--accent-hover); font-family:inherit; font-weight:600; font-size:13.5px; padding:9px 16px; border-radius:8px; cursor:pointer; transition:background .15s ease;}
+  .btn:hover{background:var(--accent-light);}
+  .btn.primary{background:var(--accent); color:#fff; border-color:var(--accent);}
+  .btn.primary:hover{background:var(--accent-hover);}
+  .reveal{display:none; margin-top:24px; animation:fadein .3s ease;}
+  @keyframes fadein{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
+  .reveal-card{border:1px solid var(--good-border); background:var(--good-bg); border-radius:14px; padding:22px 24px;}
+  .reveal-label{font-size:12.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; color:var(--good); margin-bottom:10px;}
+  .reveal-text{font-size:14.5px; color:var(--ink); margin:0 0 16px;}
+  .fix-box{background:#fff; border:1px solid var(--border); border-radius:10px; padding:14px 16px; font-size:14px; margin-bottom:10px;}
+  .fix-box .label{font-size:12px; font-weight:700; color:var(--gray); text-transform:uppercase; letter-spacing:0.02em; margin-bottom:6px;}
+  .fix-box.was{border-left:3px solid var(--bad-text);}
+  .fix-box.now{border-left:3px solid var(--good);}
+  .lesson-ref{font-size:13px; color:var(--ink-soft); margin-top:14px;}
+  .footer-btn{margin-top:22px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="tag-row">
+    <span class="tag">SA-I-002 · Методологии и технологии разработки</span>
+  </div>
+  <h1>Найдите проблему в критериях приёмки</h1>
+  <p class="lead">
+    Ниже — user story из бэклога FoodMart с критериями приёмки (Definition of Done).
+    Команда разработки взяла её в спринт без вопросов: формулировки выглядят вполне
+    конкретно. Но один критерий два инженера проверят по-разному и получат разный
+    результат — просто не сразу понятно, какой именно. Кликните на критерий, который
+    вызывает вопросы.
+  </p>
+
+  <div class="doc-card">
+    <div class="doc-header">
+      <span>US-142_CatalogFilters.md</span>
+      <span>Sprint 14 · Backlog</span>
+    </div>
+    <div class="doc-body">
+
+      <div class="story-box">
+        <b>US-142.</b> Как клиент, я хочу фильтровать каталог по категории и цене,
+        чтобы быстрее найти нужный товар.
+      </div>
+
+      <p class="doc-title">Критерии приёмки (Definition of Done)</p>
+
+      <div class="req-block" data-correct="false" onclick="handleClick(this)">
+        <span class="req-id">AC1</span>
+        <div>
+          <div class="req-text">Пользователь может выбрать одну или несколько категорий товаров для фильтрации каталога.</div>
+          <div class="inline-hint">Конкретное наблюдаемое действие, однозначно проверяется — проблема не здесь.</div>
+        </div>
+      </div>
+
+      <div class="req-block" data-correct="false" onclick="handleClick(this)">
+        <span class="req-id">AC2</span>
+        <div>
+          <div class="req-text">Пользователь может задать диапазон цен (от и до) для фильтрации каталога.</div>
+          <div class="inline-hint">Так же конкретно и проверяемо — проблема не здесь.</div>
+        </div>
+      </div>
+
+      <div class="req-block" data-correct="false" onclick="handleClick(this)">
+        <span class="req-id">AC3</span>
+        <div>
+          <div class="req-text">Список товаров обновляется автоматически после применения фильтра, без перезагрузки страницы.</div>
+          <div class="inline-hint">Бинарный результат «обновился / не обновился» — проблема не здесь.</div>
+        </div>
+      </div>
+
+      <div class="req-block" data-correct="true" onclick="handleClick(this)">
+        <span class="req-id">AC4</span>
+        <div>
+          <div class="req-text">Страница с отфильтрованным каталогом должна загружаться быстрее, чем за 2 секунды, при обычном подключении.</div>
+        </div>
+      </div>
+
+      <div class="req-block" data-correct="false" onclick="handleClick(this)">
+        <span class="req-id">AC5</span>
+        <div>
+          <div class="req-text">Если по заданным фильтрам ничего не найдено, система показывает сообщение «Товары не найдены» и предлагает сбросить фильтры.</div>
+          <div class="inline-hint">Чётко описанный негативный сценарий — проблема не здесь.</div>
+        </div>
+      </div>
+
+      <div class="note-block" data-correct="false" onclick="handleClick(this)">
+        <span class="req-id">заметка дизайнера</span>
+        <div>
+          <div class="req-text">Интерфейс фильтров должен быть приятным и интуитивно понятным.</div>
+          <div class="inline-hint">Это дизайнерская заметка, а не критерий приёмки — она не претендует на бинарную проверку «выполнено / не выполнено». Проблема не здесь.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <span class="attempts" id="attempts-label">Попыток: 0</span>
+    <button class="btn" onclick="giveUp()">Показать разбор</button>
+  </div>
+
+  <div class="reveal" id="reveal">
+    <div class="reveal-card">
+      <div class="reveal-label">✓ Проблема найдена — AC4</div>
+      <p class="reveal-text">
+        В критерии есть число — 2 секунды — и поэтому он выглядит измеримым, в отличие
+        от расплывчатых формулировок вроде «быстро» или «приятный». Но «обычное
+        подключение» нигде не определено: это мобильный интернет в метро, домашний
+        Wi-Fi или офисная сеть на 100 Мбит/с? Без зафиксированных условий измерения
+        критерий невозможно воспроизводимо проверить — тестировщик на слабом 3G и
+        разработчик в офисе на симметричном канале получат два разных результата,
+        и оба будут по-своему правы.
+      </p>
+      <div class="fix-box was">
+        <div class="label">Было</div>
+        Страница должна загружаться быстрее 2 секунд при обычном подключении.
+      </div>
+      <div class="fix-box now">
+        <div class="label">Как поправить</div>
+        Страница должна загружаться быстрее 2 секунд при подключении от 10 Мбит/с
+        и стандартной нагрузке на сервер (до 200 одновременных пользователей).
+      </div>
+      <p class="lesson-ref">
+        Число в формулировке — необходимое, но не достаточное условие верифицируемости:
+        нужны ещё и зафиксированные условия измерения. Разбирается в модуле SA-I-002
+        (критерии приёмки и Definition of Done) и пересекается с темой верификации
+        требований в модуле SA-I-003, урок 6.
+      </p>
+      <div class="footer-btn">
+        <button class="btn primary" onclick="location.reload()">Попробовать ещё раз</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let attempts = 0;
+let solved = false;
+
+function handleClick(el){
+  if(solved) return;
+  attempts++;
+  document.getElementById('attempts-label').textContent = `Попыток: ${attempts}`;
+  document.querySelectorAll('.req-block, .note-block').forEach(b => b.classList.remove('wrong-flash'));
+
+  if(el.dataset.correct === 'true'){
+    solved = true;
+    el.classList.add('correct');
+    document.querySelectorAll('.req-block, .note-block').forEach(b => { b.style.cursor='default'; b.classList.add('locked'); });
+    document.getElementById('reveal').style.display = 'block';
+    document.getElementById('reveal').scrollIntoView({behavior:'smooth', block:'nearest'});
+  } else {
+    el.classList.add('wrong-flash');
+  }
+}
+
+function giveUp(){
+  if(solved) return;
+  solved = true;
+  document.querySelectorAll('.req-block, .note-block').forEach(b => {
+    b.classList.remove('wrong-flash');
+    if(b.dataset.correct === 'true') b.classList.add('correct');
+  });
+  document.getElementById('reveal').style.display = 'block';
+  document.getElementById('reveal').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+</script>
+</body>
+</html>
